@@ -5,7 +5,7 @@ TypeScript SDK for the Flutterwave v4 API, built from a local snapshot of Flutte
 ## Install
 
 ```bash
-npm install flutterwave-v4-node-sdk
+npm install @wahya/flutterwave-v4-node-sdk
 ```
 
 ## Usage

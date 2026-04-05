@@ -2,8 +2,15 @@
   "name": "@wahya/flutterwave-v4-node-sdk",
   "version": "0.1.0",
   "description": "TypeScript Node.js SDK for the Flutterwave v4 API",
+  "repository": {
+    "url": "https://github.com/Wahya-pay/flutterwave-v4-node-sdk",
+    "type": "git"
+  },
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
