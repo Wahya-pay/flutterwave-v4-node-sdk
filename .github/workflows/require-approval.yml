@@ -1,75 +1,75 @@
 name: Require Contributor Approval
 
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-  pull_request_review:
-    types:
-      - submitted
-      - dismissed
+    pull_request:
+        branches:
+            - main
+        types:
+            - opened
+            - reopened
+            - synchronize
+            - ready_for_review
+    pull_request_review:
+        types:
+            - submitted
+            - dismissed
 
 permissions:
-  contents: read
-  pull-requests: read
+    contents: read
+    pull-requests: read
 
 jobs:
-  approval-gate:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    approval-gate:
+        if: github.event.pull_request.draft == false
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Verify contributor approval
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const pull_number = context.payload.pull_request.number;
-            const pullAuthor = context.payload.pull_request.user.login;
+        steps:
+            - name: Verify contributor approval
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const pull_number = context.payload.pull_request.number;
+                      const pullAuthor = context.payload.pull_request.user.login;
 
-            const allowedAssociations = new Set([
-              'OWNER',
-              'MEMBER',
-              'COLLABORATOR',
-              'CONTRIBUTOR',
-            ]);
+                      const allowedAssociations = new Set([
+                        'OWNER',
+                        'MEMBER',
+                        'COLLABORATOR',
+                        'CONTRIBUTOR',
+                      ]);
 
-            const reviews = await github.paginate(github.rest.pulls.listReviews, {
-              owner,
-              repo,
-              pull_number,
-              per_page: 100,
-            });
+                      const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                        owner,
+                        repo,
+                        pull_number,
+                        per_page: 100,
+                      });
 
-            const latestReviewByUser = new Map();
+                      const latestReviewByUser = new Map();
 
-            for (const review of reviews) {
-              latestReviewByUser.set(review.user.login, review);
-            }
+                      for (const review of reviews) {
+                        latestReviewByUser.set(review.user.login, review);
+                      }
 
-            const validApprovals = [...latestReviewByUser.values()].filter((review) => {
-              if (review.state !== 'APPROVED') {
-                return false;
-              }
+                      const validApprovals = [...latestReviewByUser.values()].filter((review) => {
+                        if (review.state !== 'APPROVED') {
+                          return false;
+                        }
 
-              if (review.user.login === pullAuthor) {
-                return false;
-              }
+                        if (review.user.login === pullAuthor) {
+                          return false;
+                        }
 
-              return allowedAssociations.has(review.author_association);
-            });
+                        return allowedAssociations.has(review.author_association);
+                      });
 
-            if (validApprovals.length === 0) {
-              core.setFailed(
-                'This pull request needs at least one approval from a non-author reviewer with CONTRIBUTOR, COLLABORATOR, MEMBER, or OWNER association before it can be merged.'
-              );
-              return;
-            }
+                      if (validApprovals.length === 0) {
+                        core.setFailed(
+                          'This pull request needs at least one approval from a non-author reviewer with CONTRIBUTOR, COLLABORATOR, MEMBER, or OWNER association before it can be merged.'
+                        );
+                        return;
+                      }
 
-            core.info(`Found ${validApprovals.length} valid approval(s).`);
+                      core.info(`Found ${validApprovals.length} valid approval(s).`);

@@ -1,5 +1,5 @@
 {
-  "name": "flutterwave-v4-node-sdk",
+  "name": "@wahya/flutterwave-v4-node-sdk",
   "version": "0.1.0",
   "description": "TypeScript Node.js SDK for the Flutterwave v4 API",
   "license": "MIT",
