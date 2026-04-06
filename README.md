@@ -11,7 +11,7 @@ npm install @wahya/flutterwave-v4-node-sdk
 ## Usage
 
 ```ts
-import { FlutterwaveClient } from 'flutterwave-v4-node-sdk';
+import { FlutterwaveClient } from '@wahya/flutterwave-v4-node-sdk';
 
 const client = new FlutterwaveClient({
   clientId: process.env.FLW_CLIENT_ID!,
@@ -35,7 +35,10 @@ For standard charges and orders, the v4 reference expects stored customer and pa
 ```ts
 const customer = await client.customers.create({
   email: 'ada@example.com',
-  name: 'Ada Lovelace',
+  name: {
+    first: 'Ada',
+    last: 'Lovelace',
+  },
 });
 
 await client.charges.create({
@@ -66,7 +69,7 @@ import type {
   FlutterwaveApiResult,
   FlutterwaveErrorResponse,
   FlutterwaveSuccessResponse,
-} from 'flutterwave-v4-node-sdk';
+} from '@wahya/flutterwave-v4-node-sdk';
 
 type ChargeSuccess = FlutterwaveSuccessResponse<ChargeResponse['data']>;
 type ChargeResult = FlutterwaveApiResult<ChargeResponse['data']>;
@@ -133,8 +136,28 @@ import {
   encryptPayload,
   verifyWebhookSignature,
   generateIdempotencyKey,
-} from 'flutterwave-v4-node-sdk';
+} from '@wahya/flutterwave-v4-node-sdk';
 ```
+
+For card flows, encrypt each sensitive field as a raw string with a shared nonce, matching Flutterwave's v4 encryption guide.
+
+```ts
+import { encryptPayload, generateNonce } from '@wahya/flutterwave-v4-node-sdk';
+
+const nonce = generateNonce();
+
+const card = {
+  nonce,
+  encrypted_card_number: encryptPayload('5531886652142950', process.env.FLW_ENCRYPTION_KEY!, nonce).encryptedData,
+  encrypted_expiry_month: encryptPayload('09', process.env.FLW_ENCRYPTION_KEY!, nonce).encryptedData,
+  encrypted_expiry_year: encryptPayload('32', process.env.FLW_ENCRYPTION_KEY!, nonce).encryptedData,
+  encrypted_cvv: encryptPayload('564', process.env.FLW_ENCRYPTION_KEY!, nonce).encryptedData,
+};
+```
+
+## Sandbox Test Project
+
+A local consumer app for smoke-testing the SDK against Flutterwave sandbox is included in `examples/sandbox-smoke-test`. It installs the SDK from the local package root and defaults to read-only checks.
 
 ## Notes
 

@@ -1,4 +1,5 @@
 import type {
+  BankAccountResolveRequest,
   Charge,
   ChargeResponse,
   ChargesListResponse,
@@ -7,6 +8,7 @@ import type {
   CreateOrchestrationChargeRequest,
   CreateOrderRequest,
   CreatePaymentMethodRequest,
+  CreateTransferRateRequest,
   CreateTransferRequest,
   CreateVirtualAccountRequest,
   CursorPageInfo,
@@ -67,7 +69,17 @@ type _TransferSendersListReturn = Expect<Equal<TransferSendersListReturn, Transf
 
 const createCustomerRequest: CreateCustomerRequest = {
   email: 'ada@example.com',
-  name: 'Ada Lovelace',
+  name: {
+    first: 'Ada',
+    last: 'Lovelace',
+  },
+  address: {
+    line1: '221B Baker Street',
+    city: 'Gotham',
+    state: 'Colorado',
+    country: 'US',
+    postal_code: '94105',
+  },
   phone: {
     country_code: '234',
     number: '8001122334',
@@ -104,6 +116,7 @@ const createTransferRequest: CreateTransferRequest = {
   action: 'instant',
   payment_instruction: {
     source_currency: 'NGN',
+    destination_currency: 'NGN',
     recipient_id: 'rcb_123',
     sender_id: 'sdr_123',
     amount: {
@@ -114,10 +127,29 @@ const createTransferRequest: CreateTransferRequest = {
   reference: 'trf-123',
 };
 
+const bankAccountResolveRequest: BankAccountResolveRequest = {
+  currency: 'NGN',
+  account: {
+    code: '044',
+    number: '0690000031',
+  },
+};
+
+const createTransferRateRequest: CreateTransferRateRequest = {
+  source: {
+    currency: 'NGN',
+  },
+  destination: {
+    currency: 'USD',
+    amount: 5000,
+  },
+};
+
 const createPaymentMethodRequest: CreatePaymentMethodRequest = {
   type: 'card',
   card: {
-    encrypted_number: 'enc-number',
+    nonce: '123456789012',
+    encrypted_card_number: 'enc-number',
     encrypted_expiry_month: 'enc-month',
     encrypted_expiry_year: 'enc-year',
     encrypted_cvv: 'enc-cvv',
@@ -137,12 +169,17 @@ void createChargeRequest;
 void createOrchestrationChargeRequest;
 void createOrderRequest;
 void createTransferRequest;
+void bankAccountResolveRequest;
+void createTransferRateRequest;
 void createPaymentMethodRequest;
 void createVirtualAccountRequest;
 
 // @ts-expect-error Customer creation requires an email.
 const invalidCustomerRequest: CreateCustomerRequest = {
-  name: 'Ada Lovelace',
+  name: {
+    first: 'Ada',
+    last: 'Lovelace',
+  },
 };
 
 // @ts-expect-error Standard charges require saved customer and payment method IDs.
@@ -169,7 +206,8 @@ const invalidOrderRequest: CreateOrderRequest = {
 // @ts-expect-error Payment method discriminators are required.
 const invalidPaymentMethodRequest: CreatePaymentMethodRequest = {
   card: {
-    encrypted_number: 'enc-number',
+    nonce: '123456789012',
+    encrypted_card_number: 'enc-number',
     encrypted_expiry_month: 'enc-month',
     encrypted_expiry_year: 'enc-year',
     encrypted_cvv: 'enc-cvv',

@@ -122,7 +122,7 @@ export interface BaseEntity extends FlexibleObject {
 export interface Customer extends BaseEntity {
   address?: Address;
   email?: string;
-  name?: string;
+  name?: string | PersonName;
   phone?: Phone;
   customer_code?: string;
 }
@@ -133,14 +133,14 @@ export interface CreateCustomerRequest extends FlexibleObject {
   email: string;
   address?: Address;
   meta?: Metadata;
-  name?: string;
+  name?: string | PersonName;
   phone?: Phone;
 }
 
 export interface UpdateCustomerRequest extends FlexibleObject {
   address?: Address;
   meta?: Metadata;
-  name?: string;
+  name?: string | PersonName;
   phone?: Phone;
 }
 
@@ -196,7 +196,8 @@ export interface BasePaymentMethodInput extends FlexibleObject {
 }
 
 export interface EncryptedCardInput extends FlexibleObject {
-  encrypted_number: string;
+  nonce: string;
+  encrypted_card_number: string;
   encrypted_expiry_month: string;
   encrypted_expiry_year: string;
   encrypted_cvv: string;
@@ -498,10 +499,16 @@ export interface BankBranchesListQuery extends RequestQuery {
   country?: string;
 }
 
+export interface BankAccountResolveInput extends FlexibleObject {
+  code: string;
+  number: string;
+}
+
 export interface BankAccountResolveRequest extends FlexibleObject {
-  account_number: string;
-  bank_code: string;
-  currency?: CurrencyCode;
+  currency: CurrencyCode;
+  account: BankAccountResolveInput;
+  account_number?: string;
+  bank_code?: string;
 }
 
 export type BanksListResponse = FlutterwaveApiResponse<Bank[]>;
@@ -574,12 +581,13 @@ export interface DirectTransfer extends BaseEntity {
 }
 
 export interface CreateDirectTransferRequest extends FlexibleObject {
-  amount?: number;
-  currency?: CurrencyCode;
-  recipient?: FlexibleObject;
-  sender?: FlexibleObject;
+  type: 'bank' | 'mobile_money' | 'wallet' | 'cash_pickup' | 'crypto' | string;
+  action: 'instant' | 'deferred' | 'scheduled' | string;
+  payment_instruction: FlexibleObject;
   reference?: string;
   narration?: string;
+  disburse_option?: string;
+  callback_url?: string;
   meta?: Metadata;
 }
 
@@ -592,6 +600,7 @@ export interface TransferAmountInput extends FlexibleObject {
 
 export interface TransferInstruction extends FlexibleObject {
   source_currency: CurrencyCode;
+  destination_currency?: CurrencyCode;
   amount: TransferAmountInput;
   recipient_id: string;
   sender_id?: string;
@@ -667,6 +676,7 @@ export interface CreateTransferRecipientRequest extends FlexibleObject {
   phone?: Phone;
   address?: Address;
   bank?: FlexibleObject;
+  destination_currency?: CurrencyCode;
   meta?: Metadata;
   account_number?: string;
   bank_code?: string;
@@ -717,7 +727,19 @@ export interface TransferRateQuote extends FlexibleObject {
   fee?: number;
 }
 
+export interface TransferRateSource extends FlexibleObject {
+  currency: CurrencyCode;
+}
+
+export interface TransferRateDestination extends FlexibleObject {
+  currency: CurrencyCode;
+  amount: number;
+}
+
 export interface CreateTransferRateRequest extends FlexibleObject {
+  source?: TransferRateSource;
+  destination?: TransferRateDestination;
+  precision?: number;
   source_currency?: CurrencyCode;
   destination_currency?: CurrencyCode;
   amount?: number;
@@ -766,8 +788,9 @@ export interface CreateChargebackRequest extends FlexibleObject {
   charge_id: string;
   amount: number;
   expiry: number;
-  type: string;
+  type: 'local' | 'international';
   stage?: 'new' | 'second' | 'pre-arbitration' | 'arbitration' | string;
+  status?: 'pending' | 'initiated';
   uploaded_proof?: string;
   comment?: string;
   provider?: string;
@@ -797,7 +820,7 @@ export interface RefundsListQuery extends DateRangeQuery {}
 export interface CreateRefundRequest extends FlexibleObject {
   charge_id?: string;
   amount?: number;
-  reason?: string;
+  reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer' | 'expired_uncaptured_charge';
   meta?: Metadata;
 }
 
@@ -814,6 +837,7 @@ export interface FeeQuote extends FlexibleObject {
 export interface FeesGetQuery extends RequestQuery {
   amount?: number;
   currency?: CurrencyCode;
+  payment_method?: string;
   payment_type?: string;
 }
 
@@ -883,6 +907,8 @@ export interface CreateVirtualAccountRequest extends FlexibleObject {
   currency: 'NGN' | 'GHS' | 'EGP' | 'KES' | 'MAD' | 'ZAR' | string;
   account_type: string;
   expiry?: number;
+  meta?: Metadata;
+  narration?: string;
   bvn?: string;
   nin?: string;
   customer_account_number?: string;
@@ -894,6 +920,7 @@ export interface UpdateVirtualAccountRequest extends FlexibleObject {
   action_type: 'update_bvn' | 'update_status';
   status?: 'inactive';
   bvn?: string;
+  meta?: Metadata;
 }
 
 export type VirtualAccountsListResponse = FlutterwaveApiResponse<VirtualAccount[]>;

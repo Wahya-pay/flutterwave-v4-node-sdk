@@ -1,0 +1,24 @@
+{
+  "name": "flutterwave-v4-sdk-sandbox-smoke-test",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local sandbox smoke-test project for @wahya/flutterwave-v4-node-sdk",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test:sandbox": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@wahya/flutterwave-v4-node-sdk": "file:../..",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}

@@ -39,7 +39,7 @@ export function encryptPayload(
   const key = normalizeKey(encryptionKey);
   const iv = Buffer.from(nonce, 'utf8');
   const cipher = createCipheriv('aes-256-gcm', key, iv);
-  const plaintext = Buffer.from(JSON.stringify(payload), 'utf8');
+  const plaintext = Buffer.from(serializePayload(payload), 'utf8');
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
@@ -62,5 +62,40 @@ export function decryptPayload<T = unknown>(
   const decipher = createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
   const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-  return JSON.parse(plaintext) as T;
+
+  if (looksLikeStructuredJson(plaintext)) {
+    return JSON.parse(plaintext) as T;
+  }
+
+  return plaintext as T;
+}
+
+function serializePayload(payload: unknown): string {
+  if (typeof payload === 'string') {
+    return payload;
+  }
+
+  if (
+    typeof payload === 'number'
+    || typeof payload === 'boolean'
+    || typeof payload === 'bigint'
+  ) {
+    return String(payload);
+  }
+
+  if (payload instanceof Date) {
+    return payload.toISOString();
+  }
+
+  if (payload == null) {
+    return String(payload);
+  }
+
+  return JSON.stringify(payload);
+}
+
+function looksLikeStructuredJson(value: string): boolean {
+  const trimmed = value.trim();
+
+  return trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.startsWith('"');
 }

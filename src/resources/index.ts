@@ -2,6 +2,83 @@ import { BaseResource } from './base-resource';
 import type { FlutterwaveRequestOptions } from '../types/common';
 import type * as Endpoints from '../types/endpoints';
 
+function normalizeCardInput<T extends Record<string, unknown>>(value: T): T {
+  const card = value.card;
+
+  if (!card || typeof card !== 'object' || Array.isArray(card)) {
+    return value;
+  }
+
+  const cardInput = card as Record<string, unknown>;
+
+  if (!('encrypted_number' in cardInput) || 'encrypted_card_number' in cardInput) {
+    return value;
+  }
+
+  const { encrypted_number, ...restCard } = cardInput;
+
+  return {
+    ...value,
+    card: {
+      ...restCard,
+      encrypted_card_number: encrypted_number,
+    },
+  } as T;
+}
+
+function normalizePaymentMethodInput<T extends Record<string, unknown>>(value: T): T {
+  const paymentMethod = value.payment_method;
+
+  if (!paymentMethod || typeof paymentMethod !== 'object' || Array.isArray(paymentMethod)) {
+    return value;
+  }
+
+  return {
+    ...value,
+    payment_method: normalizeCardInput(paymentMethod as Record<string, unknown>),
+  } as T;
+}
+
+function normalizeBankAccountResolveInput(body: Endpoints.BankAccountResolveRequest): Endpoints.BankAccountResolveRequest {
+  if (body.account) {
+    return body;
+  }
+
+  if (!body.account_number || !body.bank_code) {
+    return body;
+  }
+
+  return {
+    ...body,
+    currency: body.currency ?? 'NGN',
+    account: {
+      number: body.account_number,
+      code: body.bank_code,
+    },
+  };
+}
+
+function normalizeTransferRateInput(body: Endpoints.CreateTransferRateRequest): Endpoints.CreateTransferRateRequest {
+  if (body.source && body.destination) {
+    return body;
+  }
+
+  if (!body.source_currency || !body.destination_currency || body.amount == null) {
+    return body;
+  }
+
+  return {
+    ...body,
+    source: {
+      currency: body.source_currency,
+    },
+    destination: {
+      currency: body.destination_currency,
+      amount: body.amount,
+    },
+  };
+}
+
 export class CustomersResource extends BaseResource {
   list(query?: Endpoints.CustomersListQuery, options?: FlutterwaveRequestOptions): Promise<Endpoints.CustomersListResponse> {
     return this.requestGet('/customers', query, options);
@@ -47,14 +124,14 @@ export class OrchestrationResource extends BaseResource {
     body: Endpoints.CreateOrchestrationChargeRequest,
     options?: FlutterwaveRequestOptions,
   ): Promise<Endpoints.OrchestrationChargeResponse> {
-    return this.requestPost('/orchestration/direct-charges', body, options);
+    return this.requestPost('/orchestration/direct-charges', normalizePaymentMethodInput(body), options);
   }
 
   createDirectOrder(
     body: Endpoints.CreateOrchestrationOrderRequest,
     options?: FlutterwaveRequestOptions,
   ): Promise<Endpoints.OrchestrationOrderResponse> {
-    return this.requestPost('/orchestration/direct-orders', body, options);
+    return this.requestPost('/orchestration/direct-orders', normalizePaymentMethodInput(body), options);
   }
 }
 
@@ -70,7 +147,7 @@ export class PaymentMethodsResource extends BaseResource {
     body: Endpoints.CreatePaymentMethodRequest,
     options?: FlutterwaveRequestOptions,
   ): Promise<Endpoints.PaymentMethodResponse> {
-    return this.requestPost('/payment-methods', body, options);
+    return this.requestPost('/payment-methods', normalizeCardInput(body), options);
   }
 
   get(id: string | number, options?: FlutterwaveRequestOptions): Promise<Endpoints.PaymentMethodResponse> {
@@ -104,7 +181,7 @@ export class BanksResource extends BaseResource {
     body: Endpoints.BankAccountResolveRequest,
     options?: FlutterwaveRequestOptions,
   ): Promise<Endpoints.BankAccountResolveResponse> {
-    return this.requestPost('/banks/account-resolve', body, options);
+    return this.requestPost('/banks/account-resolve', normalizeBankAccountResolveInput(body), options);
   }
 }
 
@@ -246,7 +323,7 @@ export class TransferRatesResource extends BaseResource {
     body: Endpoints.CreateTransferRateRequest,
     options?: FlutterwaveRequestOptions,
   ): Promise<Endpoints.TransferRateResponse> {
-    return this.requestPost('/transfers/rates', body, options);
+    return this.requestPost('/transfers/rates', normalizeTransferRateInput(body), options);
   }
 
   get(id: string | number, options?: FlutterwaveRequestOptions): Promise<Endpoints.TransferRateResponse> {
@@ -308,7 +385,19 @@ export class RefundsResource extends BaseResource {
 
 export class FeesResource extends BaseResource {
   get(query?: Endpoints.FeesGetQuery, options?: FlutterwaveRequestOptions): Promise<Endpoints.FeesGetResponse> {
-    return this.requestGet('/fees', query, options);
+    if (!query) {
+      return this.requestGet('/fees', query, options);
+    }
+
+    const normalizedQuery =
+      query.payment_method || !query.payment_type
+        ? query
+        : {
+            ...query,
+            payment_method: query.payment_type,
+          };
+
+    return this.requestGet('/fees', normalizedQuery, options);
   }
 }
 
