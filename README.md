@@ -50,6 +50,26 @@ await client.charges.create({
 });
 ```
 
+## Card Flows
+
+Flutterwave confirmed two distinct usage patterns in v4:
+
+- Regular flow: create a customer, save a card as a payment method, then create charges with `customer_id` and `payment_method_id`. This is the better fit for recurring payments and any workflow where you want to reuse saved customer and card details.
+- Orchestrator flow: send embedded customer and payment method payloads in one request. This is the better fit for one-time payments where combining several steps is more convenient than managing saved records yourself.
+
+For either flow, inspect the charge or order response for `next_action`. If Flutterwave requires extra customer input such as PIN, OTP, AVS, or 3DS, submit the follow-up authorization payload that matches the returned action.
+
+## Security And Compliance
+
+Direct card processing still carries PCI-DSS obligations. This SDK is designed to help with the Flutterwave-specific parts of that handling, but consumers still need to operate their systems accordingly.
+
+- Never store or log raw card details.
+- Only encrypt the sensitive card and PIN fields before sending them to Flutterwave.
+- Reuse the same nonce across related encrypted fields in a single request.
+- Prefer Flutterwave Inline or hosted checkout if you want card data to avoid your systems entirely.
+
+Flutterwave indicates that v4 is operated with the relevant PCI-DSS, NDPA, and CBN-aligned controls on their side, but SDK consumers are still responsible for secure handling in their own applications.
+
 ## Features
 
 - OAuth 2.0 client credentials with cached token refresh
@@ -158,6 +178,20 @@ const card = {
 ## Sandbox Test Project
 
 A local consumer app for smoke-testing the SDK against Flutterwave sandbox is included in `examples/sandbox-smoke-test`. It installs the SDK from the local package root and defaults to read-only checks.
+
+## Maintainer Sync
+
+This package is mirrored between the public `flutterwave-v4-node-sdk` repository and the Wahya monorepo at `packages/flutterwave-sdk`.
+
+Maintainers who have both repositories checked out can sync the shared package surface from the monorepo root with:
+
+```sh
+pnpm sdk:sync:status
+pnpm sdk:sync:push
+pnpm sdk:sync:pull
+```
+
+The sync intentionally covers the publishable package surface only. Repo-specific files such as `.github/**`, `package-lock.json`, `vendor/**`, `dist/**`, `node_modules/**`, and the monorepo-only `project.json` stay local to each repository.
 
 ## Notes
 
