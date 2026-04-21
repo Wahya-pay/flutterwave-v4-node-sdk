@@ -11,7 +11,7 @@ Small local consumer project for exercising `@wahya/flutterwave-v4-node-sdk` aga
 npm install
 ```
 
-3. Run the endpoint exercise:
+1. Run the endpoint exercise:
 
 ```bash
 npm run test:sandbox
@@ -56,12 +56,14 @@ Some endpoints remain conditional because Flutterwave only allows them for speci
 - `FLW_CLIENT_ID`: Flutterwave OAuth client ID.
 - `FLW_CLIENT_SECRET`: Flutterwave OAuth client secret.
 - `FLW_ENVIRONMENT`: `sandbox` or `production`. Defaults to `sandbox`.
+- `FLW_BASE_URL`: Optional explicit API base URL override. The SDK production default uses `https://f4bexperience.flutterwave.com`.
 - `FLW_TEST_COUNTRY`: Optional country filter for banks and mobile networks. Defaults to `NG`.
 - `FLW_TEST_CURRENCY`: Optional currency filter for banks. Defaults to `NGN`.
 - `FLW_TEST_BANK_CODE`: Sandbox bank code used for account resolution and payout examples. Defaults to `044`.
 - `FLW_TEST_ACCOUNT_NUMBER`: Sandbox account number used for account resolution and payout examples. Defaults to `0690000031`.
 - `FLW_TEST_AMOUNT`: Amount used for quotes, transfers, charges, orders, and virtual accounts. Defaults to `1000`.
 - `FLW_TEST_WALLET_IDENTIFIER`: Optional wallet identifier for `wallets.resolveAccount()`.
+- `FLW_TEST_BVN`: Optional BVN used for NGN virtual-account creation. In production, the runner skips NGN virtual-account creation if this is not set.
 - `FLW_ENCRYPTION_KEY`: Optional Flutterwave encryption key for encrypted card-payment examples.
 - `FLW_RUN_WRITE_TESTS`: Set to `true` to create sandbox records and attempt write endpoints.
 - `FLW_ALLOW_NON_SANDBOX`: Set to `true` if you explicitly want to run outside sandbox.

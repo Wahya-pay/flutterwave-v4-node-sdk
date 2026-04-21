@@ -1,5 +1,26 @@
 # Flutterwave v4 Node SDK
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/@wahya/flutterwave-v4-node-sdk">
+    <img src="https://img.shields.io/npm/v/%40wahya%2Fflutterwave-v4-node-sdk?style=flat-square" alt="npm version">
+  </a>
+  <a href="https://www.npmjs.com/package/@wahya/flutterwave-v4-node-sdk">
+    <img src="https://img.shields.io/npm/dt/%40wahya%2Fflutterwave-v4-node-sdk?style=flat-square&color=success" alt="npm downloads">
+  </a>
+  <a href="https://github.com/Wahya-pay/flutterwave-v4-node-sdk/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Wahya-pay/flutterwave-v4-node-sdk/ci.yml?style=flat-square" alt="CI status">
+  </a>
+  <a href="https://github.com/Wahya-pay/flutterwave-v4-node-sdk/actions/workflows/publish.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Wahya-pay/flutterwave-v4-node-sdk/publish.yml?style=flat-square&label=publish" alt="Publish workflow status">
+  </a>
+  <a href="https://github.com/Wahya-pay/flutterwave-v4-node-sdk/blob/main/LICENSE">
+    <img src="https://img.shields.io/npm/l/%40wahya%2Fflutterwave-v4-node-sdk?style=flat-square" alt="license">
+  </a>
+  <a href="https://nodejs.org/en/download">
+    <img src="https://img.shields.io/badge/node-%3E%3D18-339933?style=flat-square" alt="node version">
+  </a>
+</p>
+
 TypeScript SDK for the Flutterwave v4 API, built from a local snapshot of Flutterwave's guides and reference pages.
 
 ## Install
@@ -74,6 +95,7 @@ Flutterwave indicates that v4 is operated with the relevant PCI-DSS, NDPA, and C
 
 - OAuth 2.0 client credentials with cached token refresh
 - Sandbox and production environment support
+- Production defaults target `https://f4bexperience.flutterwave.com`
 - Automatic `X-Idempotency-Key` handling for `POST` requests
 - Automatic `X-Trace-Id` generation
 - Typed helpers for card payload encryption and webhook verification

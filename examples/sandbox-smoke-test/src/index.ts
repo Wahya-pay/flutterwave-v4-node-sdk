@@ -208,6 +208,42 @@ function createEncryptedPinAuthorization(encryptionKey: string, pin: string) {
   };
 }
 
+function getMobileNetworksCountry(environment: FlutterwaveEnvironment, country: string): string {
+  const normalizedCountry = country.toUpperCase();
+
+  if (environment !== 'production') {
+    return normalizedCountry;
+  }
+
+  const supportedCountries = new Set([
+    'CG',
+    'CM',
+    'CI',
+    'EG',
+    'ET',
+    'GA',
+    'GH',
+    'KE',
+    'MW',
+    'RW',
+    'SN',
+    'TZ',
+    'TD',
+    'UG',
+    'ZM',
+  ]);
+
+  return supportedCountries.has(normalizedCountry) ? normalizedCountry : 'GH';
+}
+
+function getMinimumAmount(environment: FlutterwaveEnvironment, amount: number, minimum: number): number {
+  if (environment !== 'production') {
+    return amount;
+  }
+
+  return Math.max(amount, minimum);
+}
+
 function printSummary(reports: StepReport[]): void {
   const passed = reports.filter((report) => report.status === 'passed').length;
   const skipped = reports.filter((report) => report.status === 'skipped').length;
@@ -221,6 +257,7 @@ async function run(): Promise<void> {
   const clientId = requireEnv('FLW_CLIENT_ID');
   const clientSecret = requireEnv('FLW_CLIENT_SECRET');
   const environment = (process.env.FLW_ENVIRONMENT ?? 'sandbox') as FlutterwaveEnvironment;
+  const baseUrl = optionalEnv('FLW_BASE_URL');
   const allowNonSandbox = isEnabled(process.env.FLW_ALLOW_NON_SANDBOX);
   const runWriteTests = isEnabled(process.env.FLW_RUN_WRITE_TESTS);
   const country = process.env.FLW_TEST_COUNTRY ?? 'NG';
@@ -229,7 +266,10 @@ async function run(): Promise<void> {
   const accountNumber = process.env.FLW_TEST_ACCOUNT_NUMBER ?? '0690000031';
   const walletIdentifier = optionalEnv('FLW_TEST_WALLET_IDENTIFIER');
   const encryptionKey = optionalEnv('FLW_ENCRYPTION_KEY');
+  const bvn = optionalEnv('FLW_TEST_BVN');
   const testAmount = Number(process.env.FLW_TEST_AMOUNT ?? '1000');
+  const mobileNetworksCountry = getMobileNetworksCountry(environment, country);
+  const orchestrationAmount = getMinimumAmount(environment, testAmount, 50);
   const reports: StepReport[] = [];
   const context: SandboxContext = {};
 
@@ -245,9 +285,13 @@ async function run(): Promise<void> {
     clientId,
     clientSecret,
     environment,
+    baseUrl,
   });
 
   console.log(`Running Flutterwave SDK endpoint exercise against ${environment}.`);
+  if (baseUrl) {
+    console.log(`Using base URL override: ${baseUrl}`);
+  }
   console.log('Write steps enabled:', runWriteTests);
 
   const banks = await runStep(
@@ -299,7 +343,7 @@ async function run(): Promise<void> {
   await runStep(
     reports,
     'mobileNetworks.list',
-    () => client.mobileNetworks.list({ country }),
+    () => client.mobileNetworks.list({ country: mobileNetworksCountry }),
     (response) => ({
       count: response.data.length,
       sample: summarizeItems(response.data, (network) => ({ id: network.id, code: network.code, name: network.name })),
@@ -771,24 +815,39 @@ async function run(): Promise<void> {
         skip('Create a recipient first before creating a transfer.');
       }
 
-      return client.transfers.create(
-        {
-          action: 'instant',
-          reference: createReference('sdk-transfer'),
-          narration: 'SDK sandbox transfer',
-          payment_instruction: {
-            source_currency: currency,
-            destination_currency: currency,
-            recipient_id: context.recipientId,
-            sender_id: context.senderId,
-            amount: {
-              value: testAmount,
-              applies_to: 'destination_currency',
+      try {
+        return await client.transfers.create(
+          {
+            action: 'instant',
+            reference: createReference('sdk-transfer'),
+            narration: 'SDK sandbox transfer',
+            payment_instruction: {
+              source_currency: currency,
+              destination_currency: currency,
+              recipient_id: context.recipientId,
+              sender_id: context.senderId,
+              amount: {
+                value: testAmount,
+                applies_to: 'destination_currency',
+              },
             },
           },
-        },
-        { scenarioKey: 'scenario:successful' },
-      );
+          { scenarioKey: 'scenario:successful' },
+        );
+      } catch (error: unknown) {
+        if (
+          environment === 'production' &&
+          error instanceof FlutterwaveAPIError &&
+          error.code === '220400'
+        ) {
+          skip('This live account requires IP whitelisting before transfers can be created.', {
+            statusCode: error.statusCode,
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
     },
     (response) => ({ id: response.data.id, status: response.data.status, recipient_id: response.data.recipient_id }),
   );
@@ -864,29 +923,44 @@ async function run(): Promise<void> {
         skip('Set FLW_RUN_WRITE_TESTS=true to create direct transfers.');
       }
 
-      return client.directTransfers.create(
-        {
-          type: 'bank',
-          action: 'instant',
-          reference: createReference('sdk-direct-transfer'),
-          narration: 'SDK sandbox direct transfer',
-          payment_instruction: {
-            source_currency: currency,
-            destination_currency: currency,
-            amount: {
-              value: testAmount,
-              applies_to: 'destination_currency',
-            },
-            recipient: {
-              bank: {
-                account_number: accountNumber,
-                code: bankCode,
+      try {
+        return await client.directTransfers.create(
+          {
+            type: 'bank',
+            action: 'instant',
+            reference: createReference('sdk-direct-transfer'),
+            narration: 'SDK sandbox direct transfer',
+            payment_instruction: {
+              source_currency: currency,
+              destination_currency: currency,
+              amount: {
+                value: testAmount,
+                applies_to: 'destination_currency',
+              },
+              recipient: {
+                bank: {
+                  account_number: accountNumber,
+                  code: bankCode,
+                },
               },
             },
           },
-        },
-        { scenarioKey: 'scenario:successful' },
-      );
+          { scenarioKey: 'scenario:successful' },
+        );
+      } catch (error: unknown) {
+        if (
+          environment === 'production' &&
+          error instanceof FlutterwaveAPIError &&
+          error.code === '220400'
+        ) {
+          skip('This live account requires IP whitelisting before direct transfers can be created.', {
+            statusCode: error.statusCode,
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
     },
     (response) => ({ id: response.data.id, status: response.data.status, fee: response.data.fee }),
   );
@@ -964,18 +1038,35 @@ async function run(): Promise<void> {
         skip('Set FLW_ENCRYPTION_KEY to exercise PIN-authorized card charges.');
       }
 
-      return client.charges.create(
-        {
-          amount: testAmount,
-          currency,
-          reference: createReference('sdk-charge'),
-          customer_id: context.customerId,
-          payment_method_id: context.cardPaymentMethodId,
-          redirect_url: 'https://example.com/flutterwave/charge-redirect',
-          authorization: createEncryptedPinAuthorization(encryptionKey, '12345'),
-        },
-        { scenarioKey: 'scenario:auth_pin&issuer:approved' },
-      );
+      try {
+        return await client.charges.create(
+          {
+            amount: testAmount,
+            currency,
+            reference: createReference('sdk-charge'),
+            customer_id: context.customerId,
+            payment_method_id: context.cardPaymentMethodId,
+            redirect_url: 'https://example.com/flutterwave/charge-redirect',
+            authorization: createEncryptedPinAuthorization(encryptionKey, '1234'),
+          },
+          { scenarioKey: 'scenario:auth_pin&issuer:approved' },
+        );
+      } catch (error: unknown) {
+        if (
+          environment === 'production' &&
+          error instanceof FlutterwaveAPIError &&
+          error.code === '1138422' &&
+          typeof error.message === 'string' &&
+          /restricted card|failed attempt limit/i.test(error.message)
+        ) {
+          skip('The production test card is temporarily restricted after repeated failed attempts. Retry later or use a different card.', {
+            statusCode: error.statusCode,
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
     },
     (response) => ({ id: response.data.id, status: response.data.status, reference: response.data.reference }),
   );
@@ -1021,7 +1112,7 @@ async function run(): Promise<void> {
         }
 
         const updatedCharge = await client.charges.update(context.chargeId, {
-          authorization: createEncryptedPinAuthorization(encryptionKey, '12345'),
+          authorization: createEncryptedPinAuthorization(encryptionKey, '1234'),
         });
 
         chargeState = updatedCharge;
@@ -1181,16 +1272,31 @@ async function run(): Promise<void> {
         skip('Set FLW_RUN_WRITE_TESTS=true to create orchestration direct charges.');
       }
 
-      return client.orchestration.createDirectCharge({
-        amount: testAmount,
-        currency,
-        reference: createReference('sdk-orch-charge'),
-        redirect_url: 'https://example.com/flutterwave/orchestration-charge',
-        customer: createCustomerPayload(`orchestration-charge-${Date.now()}@example.com`),
-        payment_method: {
-          type: 'opay',
-        },
-      });
+      try {
+        return await client.orchestration.createDirectCharge({
+          amount: orchestrationAmount,
+          currency,
+          reference: createReference('sdk-orch-charge'),
+          redirect_url: 'https://example.com/flutterwave/orchestration-charge',
+          customer: createCustomerPayload(`orchestration-charge-${Date.now()}@example.com`),
+          payment_method: {
+            type: 'opay',
+          },
+        });
+      } catch (error: unknown) {
+        if (
+          environment === 'production' &&
+          error instanceof FlutterwaveAPIError &&
+          error.message.toLowerCase().includes('opay')
+        ) {
+          skip('This live merchant account is not enabled for OPay direct-charge orchestration.', {
+            statusCode: error.statusCode,
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
     },
     (response) => ({ id: response.data.id, status: response.data.status, reference: response.data.reference }),
   );
@@ -1209,7 +1315,7 @@ async function run(): Promise<void> {
 
       try {
         return await client.orchestration.createDirectOrder({
-          amount: testAmount,
+          amount: orchestrationAmount,
           currency,
           reference: createReference('sdk-orch-order'),
           redirect_url: 'https://example.com/flutterwave/orchestration-order',
@@ -1256,6 +1362,10 @@ async function run(): Promise<void> {
         skip('A customer is required to create a virtual account.');
       }
 
+      if (environment === 'production' && currency === 'NGN' && !bvn) {
+        skip('Set FLW_TEST_BVN to create NGN virtual accounts in production.');
+      }
+
       return client.virtualAccounts.create(
         {
           customer_id: context.customerId,
@@ -1264,7 +1374,7 @@ async function run(): Promise<void> {
           currency,
           account_type: 'static',
           narration: 'SDK sandbox virtual account',
-          bvn: currency === 'NGN' ? '12345678912' : undefined,
+          bvn: currency === 'NGN' ? bvn : undefined,
         },
         { scenarioKey: 'issuer:approved' },
       );
