@@ -152,70 +152,49 @@ export type CustomersListResponse = FlutterwaveApiResponse<Customer[]>;
 export type CustomerResponse = FlutterwaveApiResponse<Customer>;
 export type CustomersSearchResponse = FlutterwaveApiResponse<Customer[]>;
 
-/** Credential-on-file metadata used for reusable card payment methods. */
 export interface CredentialOnFileInput extends FlexibleObject {
   enabled: boolean;
   agreement_id?: string;
 }
 
-/** OTP follow-up authorization payload used after Flutterwave returns `requires_otp`. */
 export interface OtpAuthorizationInput extends FlexibleObject {
   type: 'otp';
   otp?: FlexibleObject;
 }
 
-/** PIN follow-up authorization payload used after Flutterwave returns `requires_pin`. */
 export interface PinAuthorizationInput extends FlexibleObject {
   type: 'pin';
   pin?: FlexibleObject;
 }
 
-/** External 3DS completion payload used when Flutterwave requests external 3DS authorization. */
 export interface External3dsAuthorizationInput extends FlexibleObject {
   type: 'external_3ds';
   external_3ds?: FlexibleObject;
 }
 
-/** Address Verification Service follow-up payload used after `requires_additional_fields`. */
 export interface AvsAuthorizationInput extends FlexibleObject {
   type: 'avs';
   avs?: FlexibleObject;
 }
 
-/** 3DS authorization input used by order-based redirect flows. */
 export interface ThreeDsAuthorizationInput extends FlexibleObject {
   type: '3ds';
   ['3ds']?: FlexibleObject;
 }
 
-/**
- * Follow-up authorization payload for charge updates.
- *
- * After a charge is created, inspect `data.next_action` and submit the matching
- * authorization shape with `charges.update()` when Flutterwave requires more input.
- */
 export type AuthorizationInput =
   | OtpAuthorizationInput
   | PinAuthorizationInput
   | External3dsAuthorizationInput
   | AvsAuthorizationInput;
 
-/** Follow-up authorization payload for order redirect flows. */
 export type OrderAuthorizationInput = ThreeDsAuthorizationInput;
 
-/** Common metadata shared by stored payment method create requests. */
 export interface BasePaymentMethodInput extends FlexibleObject {
   customer_id?: string;
   meta?: Metadata;
 }
 
-/**
- * Encrypted card payload for direct card handling in v4.
- *
- * Only the sensitive card fields are encrypted. Use one shared nonce across the
- * encrypted card number, expiry, and CVV fields. Raw card details should never be
- * persisted, logged, or sent unencrypted.
- */
 export interface EncryptedCardInput extends FlexibleObject {
   nonce: string;
   encrypted_card_number: string;
@@ -227,12 +206,6 @@ export interface EncryptedCardInput extends FlexibleObject {
   card_holder_name?: string;
 }
 
-/**
- * Stored card payment method input.
- *
- * Use this in the regular v4 flow when you want to save a reusable customer card
- * and charge it later for subscriptions or repeat payments.
- */
 export interface CardPaymentMethodInput extends BasePaymentMethodInput {
   type: 'card';
   card: EncryptedCardInput;
@@ -400,13 +373,6 @@ export interface ChargesListQuery extends ResourceReferenceQuery {
   order_id?: string;
 }
 
-/**
- * Charge request for the regular v4 card flow.
- *
- * This flow expects an existing `customer_id` and saved `payment_method_id`. Use it
- * when you need reusable customer and card records, such as repeat payments or
- * subscription-style billing.
- */
 export interface CreateChargeRequest extends FlexibleObject {
   amount: number;
   currency: CurrencyCode;
@@ -421,12 +387,6 @@ export interface CreateChargeRequest extends FlexibleObject {
   merchant_vat_amount?: number;
 }
 
-/**
- * Follow-up update for a charge that returned a `next_action` requirement.
- *
- * Submit OTP, PIN, AVS, or other required authorization data here after calling
- * `charges.create()`.
- */
 export interface UpdateChargeRequest extends FlexibleObject {
   meta?: Metadata;
   authorization?: AuthorizationInput;
@@ -444,12 +404,6 @@ export interface OrchestrationOrder extends BaseEntity {
   customer_id?: string;
 }
 
-/**
- * Embedded one-time charge flow.
- *
- * Use the orchestrator charge flow when you want to create the customer, payment
- * method, and initial charge in one request instead of pre-saving reusable records.
- */
 export interface CreateOrchestrationChargeRequest extends FlexibleObject {
   amount: number;
   currency: CurrencyCode;
@@ -462,13 +416,6 @@ export interface CreateOrchestrationChargeRequest extends FlexibleObject {
   merchant_vat_amount?: number;
 }
 
-/**
- * Embedded one-time order flow.
- *
- * Flutterwave recommends this for one-off payments where combining the customer,
- * payment method, and order steps into a single request is preferable to managing
- * reusable saved records yourself.
- */
 export interface CreateOrchestrationOrderRequest extends FlexibleObject {
   amount: number;
   currency: CurrencyCode;

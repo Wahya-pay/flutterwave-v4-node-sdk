@@ -15,12 +15,6 @@ function normalizeKey(encryptionKey: string): Buffer {
   throw new Error('Flutterwave encryption key must resolve to 32 bytes.');
 }
 
-/**
- * Generates a random alphanumeric nonce for Flutterwave AES-GCM field encryption.
- *
- * Flutterwave expects a 12-character nonce to be shared across related encrypted
- * card or PIN fields in the same payload.
- */
 export function generateNonce(length = 12): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = randomBytes(length);
@@ -33,20 +27,6 @@ export function generateNonce(length = 12): string {
   return nonce;
 }
 
-/**
- * Encrypts a raw value for Flutterwave field-level encryption.
- *
- * Strings are encrypted as raw strings, while objects are JSON-serialized first.
- * For card and PIN authorization flows, pass raw strings and reuse the same nonce
- * across all encrypted fields in the request.
- *
- * @example
- * ```ts
- * const nonce = generateNonce();
- * const encryptedCardNumber = encryptPayload('5531886652142950', encryptionKey, nonce);
- * const encryptedCvv = encryptPayload('564', encryptionKey, nonce);
- * ```
- */
 export function encryptPayload(
   payload: unknown,
   encryptionKey: string,
@@ -69,12 +49,6 @@ export function encryptPayload(
   };
 }
 
-/**
- * Decrypts a value previously produced by {@link encryptPayload}.
- *
- * This is mainly useful in tests and local verification utilities. Flutterwave
- * requests normally only require encryption before sending data.
- */
 export function decryptPayload<T = unknown>(
   encryptedData: string,
   encryptionKey: string,
